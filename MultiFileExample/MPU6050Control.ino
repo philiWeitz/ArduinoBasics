@@ -5,7 +5,7 @@
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
-#define BAUD_RATE 9600
+#define BAUD_RATE 38400
 #define LED_PIN 13
 
 
@@ -24,6 +24,7 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
+VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
@@ -87,6 +88,7 @@ void readMPU6050Values() {
   fifoCount = mpu.getFIFOCount();
 
   if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+    Serial.println(F("FIFO Overflow"));
     mpu.resetFIFO();
   
 } else if (mpuIntStatus & 0x02) {    
@@ -110,6 +112,7 @@ void readMPU6050Values() {
     mpu.dmpGetAccel(&aa, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+    mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
   }
 }
 
@@ -130,20 +133,20 @@ float getRollAngle() {
 void printMPU6050Values() {
     
   // gyroscope
-  Serial.print(F("Gyroscope \t\t yaw: "));
-  Serial.print(getYawAngle());
-  Serial.print(F(" - pitch: "));
-  Serial.print(getPitchAngle());
-  Serial.print(F(" - roll: "));
-  Serial.println(getRollAngle());
+  //Serial.print(F("Gyroscope \t\t yaw: "));
+  //Serial.print(getYawAngle());
+  //Serial.print(F(" - pitch: "));
+  //Serial.print(getPitchAngle());
+  //Serial.print(F(" - roll: "));
+  //Serial.println(getRollAngle());
 
   // accelerator  
-  //Serial.print("Accelerator \t\t x: ");
-  //Serial.print(aaReal.x);
-  //Serial.print(" y: ");
-  //Serial.print(aaReal.y);
-  //Serial.print(" z: ");
-  //Serial.println(aaReal.z);
+  Serial.print("Accelerator \t\t x: ");
+  Serial.print(aaWorld.x);
+  Serial.print(" y: ");
+  Serial.print(aaWorld.y);
+  Serial.print(" z: ");
+  Serial.println(aaWorld.z);
 }
 
 
