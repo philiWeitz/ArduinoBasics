@@ -130,23 +130,39 @@ float getRollAngle() {
 }
 
 
+uint16_t getXAcceleration() {
+  return aaWorld.x;
+}
+
+uint16_t getYAcceleration() {
+  return aaWorld.y;
+}
+
+uint16_t getZAcceleration() {
+  return aaWorld.z;
+}
+
+bool isMPU6050Available() {
+  return dmpReady;
+}
+
 void printMPU6050Values() {
-    
+  
   // gyroscope
-  //Serial.print(F("Gyroscope \t\t yaw: "));
-  //Serial.print(getYawAngle());
-  //Serial.print(F(" - pitch: "));
-  //Serial.print(getPitchAngle());
-  //Serial.print(F(" - roll: "));
-  //Serial.println(getRollAngle());
+  Serial.print(F("Gyroscope \t\t yaw: "));
+  Serial.print(getYawAngle());
+  Serial.print(F(" - pitch: "));
+  Serial.print(getPitchAngle());
+  Serial.print(F(" - roll: "));
+  Serial.println(getRollAngle());
 
   // accelerator  
-  Serial.print("Accelerator \t\t x: ");
-  Serial.print(aaWorld.x);
+  /*Serial.print("Accelerator \t\t x: ");
+  Serial.print(getXAcceleration());
   Serial.print(" y: ");
-  Serial.print(aaWorld.y);
+  Serial.print(getYAcceleration());
   Serial.print(" z: ");
-  Serial.println(aaWorld.z);
+  Serial.println(getZAcceleration());*/
 }
 
 
