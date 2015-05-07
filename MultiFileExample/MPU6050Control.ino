@@ -5,9 +5,6 @@
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
-#define BAUD_RATE 38400
-#define LED_PIN 13
-
 
 MPU6050 mpu;
 
@@ -30,46 +27,36 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 
 void initMPU6050() {
-  
-  // configure LED for output
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
-  
+    
   Wire.begin();
-  Serial.begin(BAUD_RATE);
 
   // initialize device
   Serial.println(F("Initializing MPU-6050..."));
   mpu.initialize();
 
   // verify connection
-  Serial.println(F("Testing device connections..."));
   devStatus = mpu.testConnection();
   
-  if(0 == devStatus) {
-    Serial.println(F("MPU-6050 connection successful"));
-  } else {
+  if(0 != devStatus) {
     Serial.print(F("MPU-6050 connection failed! Error code: "));
     Serial.println(devStatus);
   }
 
   // load and configure the DMP
-  Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
   if (devStatus == 0) {
     // turn on the DMP, now that it's ready
-    Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
     mpuIntStatus = mpu.getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
-    Serial.println(F("DMP ready! Waiting for first interrupt..."));
     dmpReady = true;
     digitalWrite(LED_PIN, HIGH);
     
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
+    Serial.println(F("MPU6050 ready"));
     
   } else {
     Serial.print(F("DMP Initialization failed! Error code: "));

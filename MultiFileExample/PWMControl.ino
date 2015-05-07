@@ -12,15 +12,21 @@ unsigned int range = 0;
 unsigned int middle = 0;
 
 void initPWMControl() {
+  Serial.println(F("Initializing PWM Control..."));
   
   // don't do anything if MPU6050 is not available
   if(isMPU6050Available()) {
+    
     // TODO: values are only dummy values
     range = 16;
     middle = 16;
+    
+    Serial.println(F("PWM Control ready"));
   } else {
     range = 0;
-    middle = 0;    
+    middle = 0;  
+    
+    Serial.println(F("Can't initialize PWM Control! MPU6050 is not available"));
   }
   
   analogWrite(PWM_FRONT, middle);
@@ -67,8 +73,6 @@ void updatePWMControl() {
     analogWrite(PWM_BACK, middle + (pwmValue * range));
     analogWrite(PWM_FRONT, middle - (pwmValue * range));
   }
-
-  Serial.println(pwmValue);
 }
 
 
