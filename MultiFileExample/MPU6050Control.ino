@@ -1,23 +1,25 @@
 
-
 #include "Wire.h"
-
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
 
+//#define DEBUG_MPU6050 true
+#define MPU_SAMPLE_RATE 9 // sample rate = (1kHz / desired freq) - 1 
+
 MPU6050 mpu;
 
-
-// MPU control/status vars
+// MPU control/status variables
+bool mpu6050Ready = false;
 bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
+
+uint8_t mpuIntStatus;
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
 uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
-// orientation/motion vars
+// orientation/motion variables
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
@@ -27,82 +29,117 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 
 void initMPU6050() {
+    Wire.begin();
+    TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+
+    // initialize device
+    #ifdef DEBUG_MPU6050
+      Serial.println(F("Initializing I2C devices..."));
+    #endif
     
-  Wire.begin();
+    mpu.initialize();
 
-  // initialize device
-  Serial.println(F("Initializing MPU-6050..."));
-  mpu.initialize();
+    // verify connection
+    #ifdef DEBUG_MPU6050
+      Serial.println(F("Testing device connections..."));
+    #endif    
+    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
-  // verify connection
-  devStatus = mpu.testConnection();
-  
-  if(0 != devStatus) {
-    Serial.print(F("MPU-6050 connection failed! Error code: "));
-    Serial.println(devStatus);
-  }
+    // load and configure the DMP
+    #ifdef DEBUG_MPU6050
+      Serial.println(F("Initializing DMP..."));
+    #endif
+    devStatus = mpu.dmpInitialize();
 
-  // load and configure the DMP
-  devStatus = mpu.dmpInitialize();
-
-  if (devStatus == 0) {
-    // turn on the DMP, now that it's ready
-    mpu.setDMPEnabled(true);
-    mpuIntStatus = mpu.getIntStatus();
-
-    // set our DMP Ready flag so the main loop() function knows it's okay to use it
-    dmpReady = true;
-    digitalWrite(LED_PIN, HIGH);
+    // supply your own gyro offsets here, scaled for min sensitivity
+    mpu.setXGyroOffset(110);
+    mpu.setYGyroOffset(-49);
+    mpu.setZGyroOffset(37);
+    mpu.setXAccelOffset(-954);
+    mpu.setYAccelOffset(-18);    
+    mpu.setZAccelOffset(1767);
     
-    // get expected DMP packet size for later comparison
-    packetSize = mpu.dmpGetFIFOPacketSize();
-    Serial.println(F("MPU6050 ready"));
-    
-  } else {
-    Serial.print(F("DMP Initialization failed! Error code: "));
-    Serial.println(devStatus);
-  }
+    // set the sample rate divider
+    mpu.setRate(MPU_SAMPLE_RATE);
+
+    if (devStatus == 0) {
+        // turn on the DMP, now that it's ready
+        #ifdef DEBUG_MPU6050
+          Serial.println(F("Enabling DMP..."));
+        #endif
+        mpu.setDMPEnabled(true);
+
+        // set our DMP Ready flag so the main loop() function knows it's okay to use it
+        #ifdef DEBUG_MPU6050
+          Serial.println(F("DMP ready! Waiting for first packages..."));
+        #endif
+        dmpReady = true;
+
+        // get expected DMP packet size for later comparison
+        packetSize = mpu.dmpGetFIFOPacketSize();
+        
+    } else {
+        Serial.print(F("DMP Initialization failed (code "));
+        Serial.print(devStatus);
+        Serial.println(F(")"));
+    }
 }
 
 
 void readMPU6050Values() {
-  
-  // if programming failed, don't try to do anything
-  if (!dmpReady) return;
+    // if programming failed, don't try to do anything
+    if (!dmpReady) return;
 
-  mpuIntStatus = mpu.getIntStatus();
-  // get current FIFO count
-  fifoCount = mpu.getFIFOCount();
+    // wait for MPU extra packet(s) available
+    while (fifoCount < packetSize) {
+      fifoCount = mpu.getFIFOCount();
+      mpu6050Ready = true;
+    }
 
-  if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
-    Serial.println(F("FIFO Overflow"));
-    mpu.resetFIFO();
-  
-} else if (mpuIntStatus & 0x02) {    
-    // wait for correct available data length, should be a VERY short wait
-    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
+    // get INT_STATUS byte
+    mpuIntStatus = mpu.getIntStatus();
 
-    // read a packet from FIFO
-    mpu.getFIFOBytes(fifoBuffer, packetSize);
+    // get current FIFO count
+    fifoCount = mpu.getFIFOCount();
 
-    // track FIFO count here in case there is > 1 packet available
-    // (this lets us immediately read more without waiting for an interrupt)
-    fifoCount -= packetSize;
+    // check for overflow (this should never happen unless our code is too inefficient)
+    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+        // reset so we can continue cleanly
+        mpu.resetFIFO();
+        Serial.println(F("Error: FIFO overflow!"));
+          
+    // otherwise, check for DMP data ready interrupt (this should happen frequently)
+    } else if (mpuIntStatus & 0x02) {
+        // wait for correct available data length, should be a VERY short wait
+        while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
 
-    // gyroscope
-    mpu.dmpGetQuaternion(&q, fifoBuffer);
-    mpu.dmpGetGravity(&gravity, &q);
-    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-    
-    // accelerator
-    mpu.dmpGetQuaternion(&q, fifoBuffer);
-    mpu.dmpGetAccel(&aa, fifoBuffer);
-    mpu.dmpGetGravity(&gravity, &q);
-    mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-    mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-  }
+        // read a packet from FIFO
+        mpu.getFIFOBytes(fifoBuffer, packetSize);
+        
+        // track FIFO count here in case there is > 1 packet available
+        // (this lets us immediately read more without waiting for an interrupt)
+        fifoCount -= packetSize;
+
+        // gyroscope - Euler angles in degrees
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        
+        // accelerator
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetAccel(&aa, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+        mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
+
+        Serial.print(F("ypr\t"));
+        Serial.print(getXAcceleration());
+        Serial.print(F("\t"));        
+        Serial.print(getYAcceleration());
+        Serial.print(F("\t"));
+        Serial.println(getZAcceleration());
+    }
 }
-
 
 float getYawAngle() {
   return ypr[0] * 180 / M_PI;
@@ -116,41 +153,18 @@ float getRollAngle() {
   return ypr[2] * 180 / M_PI;
 }
 
-
-uint16_t getXAcceleration() {
+int16_t getXAcceleration() {
   return aaWorld.x;
 }
 
-uint16_t getYAcceleration() {
+int16_t getYAcceleration() {
   return aaWorld.y;
 }
 
-uint16_t getZAcceleration() {
+int16_t getZAcceleration() {
   return aaWorld.z;
 }
 
 bool isMPU6050Available() {
   return dmpReady;
 }
-
-void printMPU6050Values() {
-  
-  // gyroscope
-  Serial.print(F("Gyroscope \t\t yaw: "));
-  Serial.print(getYawAngle());
-  Serial.print(F(" - pitch: "));
-  Serial.print(getPitchAngle());
-  Serial.print(F(" - roll: "));
-  Serial.println(getRollAngle());
-
-  // accelerator  
-  /*Serial.print("Accelerator \t\t x: ");
-  Serial.print(getXAcceleration());
-  Serial.print(" y: ");
-  Serial.print(getYAcceleration());
-  Serial.print(" z: ");
-  Serial.println(getZAcceleration());*/
-}
-
-
-
