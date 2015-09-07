@@ -72,6 +72,9 @@ void initMPU6050() {
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
         
+        // wait for the first values
+        readMPU6050Values();
+        
     } else {
         Serial.print(F("DMP Initialization failed (code "));
         Serial.print(devStatus);
@@ -126,13 +129,15 @@ void readMPU6050Values() {
         mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
         mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
 
-        Serial.print(F("ypr\t"));
-        Serial.print(getXAcceleration());
-        Serial.print(F("\t"));        
-        Serial.print(getYAcceleration());
-        Serial.print(F("\t"));
-        Serial.println(getZAcceleration());
-    }
+        #ifdef DEBUG_MPU6050
+          Serial.print(F("ypr\t"));
+          Serial.print(getXAcceleration());
+          Serial.print(F("\t"));        
+          Serial.print(getYAcceleration());
+          Serial.print(F("\t"));
+          Serial.println(getZAcceleration());
+        #endif  
+  }
 }
 
 float getYawAngle() {

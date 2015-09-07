@@ -1,11 +1,10 @@
 
 
-#define ANALOG_INPUT_PIN A0         // input pin for reading power value
-#define MIN_VOLTAGE 7               // minimum voltage
+#define MIN_VOLTAGE 3.3             // minimum voltage
 
 #define VOLT_PER_STEP (3.3/1023.0)  // converts input step into a voltage value
-#define RESISTOR_1_OHM 100.0        // resistor value 1 (Spannungsteiler)
-#define RESISTOR_2_OHM 100.0        // resistor value 1 (Spannungsteiler)
+#define RESISTOR_1_OHM 1000000.0    // resistor value 1 (Spannungsteiler)
+#define RESISTOR_2_OHM 1000000.0    // resistor value 2 (Spannungsteiler)
 
 float voltage = 0;         
 

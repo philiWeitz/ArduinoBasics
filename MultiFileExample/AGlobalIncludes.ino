@@ -6,9 +6,19 @@
 #include "MPU6050_6Axis_MotionApps20.h"
 
 
+/************ pin definitions ************/
+
+#define LED_PIN 13            // led output
+#define ANALOG_INPUT_PIN A0   // input pin for reading power value
+
+#define PWM_FRONT 3  // pwm output pin
+#define PWM_RIGHT 5  // pwm output pin
+#define PWM_BACK 6   // pwm output pin
+#define PWM_LEFT 9   // pwm output pin
+
+
 /************ main ************/
 
-#define LED_PIN 13
 #define BAUD_RATE 38400
 
 bool flightControlReady = false; 

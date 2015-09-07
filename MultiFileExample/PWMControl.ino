@@ -1,10 +1,5 @@
 
 
-#define PWM_FRONT 3  // pwm output pin
-#define PWM_RIGHT 5  // pwm output pin
-#define PWM_BACK 6   // pwm output pin
-#define PWM_LEFT 9   // pwm output pin
-
 #define MAX_PWM_VALUE 50
 #define E 2.718281828459045235360287471352
 
@@ -21,30 +16,29 @@ float pwmValue = 0;
 void initPWMControl() {
   Serial.println(F("Initializing PWM Control..."));
   
-  // don't do anything if MPU6050 is not available
   if(mpu6050Ready) {
-    
+    // if PMU ready -> set initial values to PWM
     Serial.println(F("PWM Control ready"));
   } else {
+    // don't do anything if MPU6050 is not available
     pwmRange = 0;
-    
-    pwmMiddleFront = 0;
-    pwmMiddleBack = 0;
-    pwmMiddleLeft = 0;
-    pwmMiddleRight = 0;
-    
     Serial.println(F("Can't initialize PWM Control! MPU6050 is not available"));
   }
   
-  // set pwm to 0 -> no power
-  analogWrite(PWM_FRONT, 0);
-  analogWrite(PWM_RIGHT, 0);
-  analogWrite(PWM_BACK, 0);
-  analogWrite(PWM_LEFT, 0);  
+  // initially all values are set to 0
+  setPwmMiddleValues();
 }
 
 
-void updatePWMControl() {
+void setPwmMiddleValues() {
+  analogWrite(PWM_FRONT, pwmMiddleFront);
+  analogWrite(PWM_RIGHT, pwmMiddleRight);
+  analogWrite(PWM_BACK, pwmMiddleBack);
+  analogWrite(PWM_LEFT, pwmMiddleLeft);  
+}
+
+
+void stabalizeHorizontalPosition() {
   
   // read new mpu6050 values
   readMPU6050Values();
@@ -77,6 +71,6 @@ void updatePWMControl() {
 }
 
 uint8_t getMaxPwmValue() {
-  return MAX_PWM_VALUE - pwmRange;
+  return MAX_PWM_VALUE;
 }
 
