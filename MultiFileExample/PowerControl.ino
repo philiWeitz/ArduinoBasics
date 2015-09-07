@@ -1,15 +1,14 @@
-//#define DEBUG_VOLTAGE
-
-#define ANALOG_INPUT_PIN A0
-
-#define MIN_VOLTAGE 7
-
-#define VOLT_PER_STEP (3.3/1023.0)
-#define RESISTOR_1_OHM 100.0
-#define RESISTOR_2_OHM 100.0
 
 
-float voltage = 0;
+#define ANALOG_INPUT_PIN A0         // input pin for reading power value
+#define MIN_VOLTAGE 7               // minimum voltage
+
+#define VOLT_PER_STEP (3.3/1023.0)  // converts input step into a voltage value
+#define RESISTOR_1_OHM 100.0        // resistor value 1 (Spannungsteiler)
+#define RESISTOR_2_OHM 100.0        // resistor value 1 (Spannungsteiler)
+
+float voltage = 0;         
+
 
 bool isPowerLevelOk() {
   // voltage U2

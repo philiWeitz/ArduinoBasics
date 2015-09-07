@@ -1,17 +1,11 @@
 
-#include "Wire.h"
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
 
+#define MPU_FAST_SAMPLE_RATE 9   // sample rate = (1kHz / desired freq) - 1 
+#define MPU_SLOW_SAMPLE_RATE 30
 
-//#define DEBUG_MPU6050 true
-#define MPU_SAMPLE_RATE 9 // sample rate = (1kHz / desired freq) - 1 
+bool dmpReady = false;      // set true if DMP init was successful
 
 MPU6050 mpu;
-
-// MPU control/status variables
-bool mpu6050Ready = false;
-bool dmpReady = false;  // set true if DMP init was successful
 
 uint8_t mpuIntStatus;
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
@@ -60,7 +54,7 @@ void initMPU6050() {
     mpu.setZAccelOffset(1767);
     
     // set the sample rate divider
-    mpu.setRate(MPU_SAMPLE_RATE);
+    setMpu6050FastSampleRate();
 
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
@@ -145,11 +139,13 @@ float getYawAngle() {
   return ypr[0] * 180 / M_PI;
 }
 
-float getPitchAngle() {
+// pitch angle
+float getRotationAroundX() {
   return ypr[1] * 180 / M_PI;
 }
 
-float getRollAngle() {
+// role angle
+float getRotationAroundY() {
   return ypr[2] * 180 / M_PI;
 }
 
@@ -165,6 +161,10 @@ int16_t getZAcceleration() {
   return aaWorld.z;
 }
 
-bool isMPU6050Available() {
-  return dmpReady;
+void setMpu6050FastSampleRate() {
+  mpu.setRate(MPU_FAST_SAMPLE_RATE);
+}
+
+void setMpu6050SlowSampleRate() {
+  mpu.setRate(MPU_SLOW_SAMPLE_RATE);
 }

@@ -55,15 +55,10 @@ void initMPU6050() {
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(110);
-    mpu.setYGyroOffset(-49);
-    mpu.setZGyroOffset(37);
-    mpu.setXAccelOffset(-954);
-    mpu.setYAccelOffset(-18);    
-    mpu.setZAccelOffset(1767);
-    
+
     // set the sample rate divider
     mpu.setRate(MPU_SAMPLE_RATE);
+    //mpu.setDLPFMode(6);
 
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
@@ -89,7 +84,7 @@ void initMPU6050() {
 }
 
 
-void readMPU6050Values() {
+void readMPU6050Values() {    
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
@@ -138,21 +133,22 @@ void readMPU6050Values() {
         Serial.print(F("ypr\t"));
         Serial.print(getYawAngle());
         Serial.print(F("\t"));        
-        Serial.print(getPitchAngle());
+        Serial.print(getRotationAroundX());
         Serial.print(F("\t"));
-        Serial.println(getRollAngle());
+        Serial.println(getRotationAroundY());
     }
+    
 }
 
-float getYawAngle() {
+int8_t getYawAngle() {
   return ypr[0] * 180 / M_PI;
 }
 
-float getPitchAngle() {
+int8_t getRotationAroundY() {
   return ypr[1] * 180 / M_PI;
 }
 
-float getRollAngle() {
+int8_t getRotationAroundX() {
   return ypr[2] * 180 / M_PI;
 }
 
